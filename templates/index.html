@@ -2,8 +2,7 @@
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
-    <title>Learn with AI</title>
-
+    <title>Voice AI Chat</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,102 +11,116 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            margin: 0;
         }
-
         .chat {
             width: 420px;
             background: white;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 12px rgba(0,0,0,0.15);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-
-        h2 {
-            text-align: center;
-        }
+        h2 { text-align: center; color: #333; }
+        .controls { display: flex; gap: 10px; margin-top: 10px; }
 
         input {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
         }
 
         button {
-            width: 100%;
-            padding: 10px;
-            margin-top: 8px;
+            padding: 12px;
             cursor: pointer;
             font-size: 14px;
+            border: none;
+            border-radius: 6px;
+            transition: 0.2s;
         }
+
+        .btn-send { background: #4CAF50; color: white; }
+        .btn-mic { background: #008CBA; color: white; width: 100%; margin-top: 10px; font-weight: bold; font-size: 16px; }
+        .btn-mic.listening { background: #ff4d4d; animation: pulse 1.5s infinite; }
 
         .ai-box {
             margin-top: 15px;
-            padding: 10px;
+            padding: 15px;
             background: #eef1ff;
-            border-radius: 5px;
-            min-height: 60px;
+            border-radius: 8px;
+            min-height: 80px;
+            font-size: 15px;
+            line-height: 1.5;
         }
 
-        .stop {
-            background: #ff4d4d;
-            color: white;
-            border: none;
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
         }
     </style>
 </head>
 <body>
 
 <div class="chat">
-    <h2>💬 Learn with AI</h2>
+    <h2>🎙️ Voice AI Chat</h2>
 
-    <input id="userInput" placeholder="Xabar yozing..." />
-
-    <button onclick="sendMessage()">📨 Yuborish</button>
-
-    <div class="ai-box">
-        <b>AI:</b>
-        <span id="aiText"></span>
+    <div class="controls">
+        <input id="userInput" placeholder="Yozing yoki mikrofonni bosing..." />
+        <button class="btn-send" onclick="sendMessage()">📨</button>
     </div>
 
-    <button onclick="speak()">🔊 AI gapirsin</button>
-    <button class="stop" onclick="stopSpeech()">🔇 Ovozni o‘chirish</button>
+    <button id="micBtn" class="btn-mic" onclick="startListening()">🎤 Gapirish</button>
+
+    <div class="ai-box">
+        <b>AI:</b> <span id="aiText">Zavqli suhbatga tayyorman...</span>
+    </div>
+
+    <button style="width: 100%; margin-top: 10px; background: #ddd;" onclick="stopSpeech()">🔇 Ovozni to'xtatish</button>
 </div>
 
 <script>
 let utterance = null;
+const aiTextSpan = document.getElementById("aiText");
+const micBtn = document.getElementById("micBtn");
+const userInput = document.getElementById("userInput");
 
+// 1. XABAR YUBORISH VA AVTOMATIK GAPIRTIRISH
 async function sendMessage() {
-    const input = document.getElementById("userInput");
-    const text = input.value.trim();
+    const text = userInput.value.trim();
     if (!text) return;
 
-    input.value = "";
+    userInput.value = "";
+    aiTextSpan.innerText = "O'ylamoqda...";
+    stopSpeech(); // Oldingi ovozni to'xtatamiz
 
-    // AI ovozi bo‘lsa — to‘liq o‘chiramiz
-    stopSpeech();
+    try {
+        const res = await fetch("/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text })
+        });
 
-    const res = await fetch("/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text })
-    });
+        const data = await res.json();
+        const responseText = data.response;
+        aiTextSpan.innerText = responseText;
 
-    const data = await res.json();
-    document.getElementById("aiText").innerText = data.response;
+        // Javob kelgan zahoti AI o'zi gapirishni boshlaydi
+        speak(responseText);
+
+    } catch (error) {
+        aiTextSpan.innerText = "Xatolik yuz berdi.";
+    }
 }
 
-function speak() {
-    const text = document.getElementById("aiText").innerText;
-    if (!text) return;
-
-    // HAR DOIM to‘liq tozalash
+// 2. ISTALGAN TILDA GAPIRISH (TTS)
+function speak(text) {
     stopSpeech();
-
     utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "eng-ENG";
 
-    utterance.rate = 0.95;
-    utterance.pitch = 1.1;
+    // Qat'iy ingliz tilini olib tashladik. Endi brauzer matnga qarab tilni o'zi moslaydi.
+    utterance.rate = 1.0;
+    utterance.pitch = 1.2; // Ozgina nozikroq ovoz
 
     window.speechSynthesis.speak(utterance);
 }
@@ -116,7 +129,51 @@ function stopSpeech() {
     if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
         window.speechSynthesis.cancel();
     }
-    utterance = null;
+}
+
+// 3. OVOZNI ESHITISH VA MATNGA AYLANTIRISH (STT)
+function startListening() {
+    // Brauzer mikrofonni qo'llab-quvvatlashini tekshiramiz (Chrome, Edge'da ishlaydi)
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+        alert("Kechirasiz, brauzeringiz ovozli yozishni qo'llab-quvvatlamaydi. Iltimos, Google Chrome ishlating.");
+        return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "uz-UZ"; // Eshitish tili (Ruscha uchun: 'ru-RU', Inglizcha: 'en-US')
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = function() {
+        micBtn.classList.add("listening");
+        micBtn.innerText = "🔴 Eshitilmoqda (gapiring)...";
+        stopSpeech();
+    };
+
+    recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        userInput.value = transcript;
+        micBtn.classList.remove("listening");
+        micBtn.innerText = "🎤 Gapirish";
+
+        // Gapirib bo'lingach, avtomat backendga jo'natadi!
+        sendMessage();
+    };
+
+    recognition.onerror = function(event) {
+        micBtn.classList.remove("listening");
+        micBtn.innerText = "🎤 Gapirish";
+        console.error("Mikrofon xatosi: ", event.error);
+    };
+
+    recognition.onend = function() {
+        micBtn.classList.remove("listening");
+        micBtn.innerText = "🎤 Gapirish";
+    };
+
+    recognition.start();
 }
 </script>
 
