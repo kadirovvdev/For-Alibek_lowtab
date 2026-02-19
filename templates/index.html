@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <title>Learn with AI</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f4f8;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat {
+            width: 420px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 12px rgba(0,0,0,0.15);
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .ai-box {
+            margin-top: 15px;
+            padding: 10px;
+            background: #eef1ff;
+            border-radius: 5px;
+            min-height: 60px;
+        }
+
+        .stop {
+            background: #ff4d4d;
+            color: white;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat">
+    <h2>💬 Learn with AI</h2>
+
+    <input id="userInput" placeholder="Xabar yozing..." />
+
+    <button onclick="sendMessage()">📨 Yuborish</button>
+
+    <div class="ai-box">
+        <b>AI:</b>
+        <span id="aiText"></span>
+    </div>
+
+    <button onclick="speak()">🔊 AI gapirsin</button>
+    <button class="stop" onclick="stopSpeech()">🔇 Ovozni o‘chirish</button>
+</div>
+
+<script>
+let utterance = null;
+
+async function sendMessage() {
+    const input = document.getElementById("userInput");
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = "";
+
+    // AI ovozi bo‘lsa — to‘liq o‘chiramiz
+    stopSpeech();
+
+    const res = await fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text })
+    });
+
+    const data = await res.json();
+    document.getElementById("aiText").innerText = data.response;
+}
+
+function speak() {
+    const text = document.getElementById("aiText").innerText;
+    if (!text) return;
+
+    // HAR DOIM to‘liq tozalash
+    stopSpeech();
+
+    utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "eng-ENG";
+
+    utterance.rate = 0.95;
+    utterance.pitch = 1.1;
+
+    window.speechSynthesis.speak(utterance);
+}
+
+function stopSpeech() {
+    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+        window.speechSynthesis.cancel();
+    }
+    utterance = null;
+}
+</script>
+
+</body>
+</html>

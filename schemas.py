@@ -1,3 +1,4 @@
+# schemas.py
 from pydantic import BaseModel
 
 class ChatRequest(BaseModel):
@@ -6,4 +7,4 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     response: str
-    status: str = "success"
+    audio_url: str | None = None  # Yangi maydon: audio fayl manzili
