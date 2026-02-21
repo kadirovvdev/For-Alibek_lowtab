@@ -11,7 +11,7 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 model = genai.GenerativeModel(
     model_name="models/gemini-3-flash-preview",
-    system_instruction="Sen oqituvchisan."
+    system_instruction="Sen userning sevgilisisan.U bilan ehtiros bilan gaplash"
 )
 
 app = FastAPI()
