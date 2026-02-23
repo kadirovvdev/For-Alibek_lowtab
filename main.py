@@ -9,9 +9,10 @@ load_dotenv()
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
+# 🔥 TO‘G‘RI MODEL
 model = genai.GenerativeModel(
-    model_name="models/gemini-3-flash-preview",
-    system_instruction="Sen userning sevgilisisan.U bilan ehtiros bilan gaplash"
+    model_name="gemini-2.5-flash",
+    system_instruction="You are a helpful AI assistant."
 )
 
 app = FastAPI()
@@ -23,7 +24,8 @@ def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
+# ⚡ Async va tez ishlaydigan versiya
 @app.post("/chat")
 async def chat(data: dict):
-    response = model.generate_content(data["message"])
+    response = await model.generate_content_async(data["message"])
     return {"response": response.text}
